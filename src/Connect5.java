@@ -109,8 +109,8 @@ public class Connect5 {
 
 
     // Engine method
-    // Return coordinate of best available move for given game scenario
-    public Point getBestMove() {
+    // Return coordinates of the best available move for given game scenario, for the given player
+    public Point getBestMove(int playerNum) {
         // HashMap to contain coordinates (keys) and their scores (values) of possible moves
         HashMap<Point, Integer> posMoves = new HashMap<>();
 
@@ -121,23 +121,112 @@ public class Connect5 {
                 if (board[i][j] != 0) {
                     continue;
                 }
-
-
+                // Get the move score of the current placement
+                int givenMove = getMoveScore(i, j, playerNum);
+                // If the move results in an immediate win, return those coordinates so the move can be made immediately
+                if (givenMove == 2) {
+                    return new Point(i, j);
+                }
+                // Otherwise get the score of the move and add it to the HashMap with the given coordinates
+                posMoves.put(new Point(i, j), givenMove);
             }
         }
 
         // Integer to hold coordinates of highest scored move
-        Point bestMove = (0,0);
+        Point bestMove = new Point(-1, -1);
 
         // Iterate through the HashMap of possible moves to find the one with the highest score
         for (Point placement : posMoves.keySet()) {
-            // Update bestMove if the current possible move is associated with a higher score
-            if (posMoves.get(placement) > posMoves.get(bestMove)) {
+            // If bestMove hasn't been altered yet, set it to the first key in the HashMap
+            if (bestMove.x == -1) {
+                bestMove = placement;
+            }
+            // Otherwise update bestMove if the current possible move is associated with a higher score
+            else if (posMoves.get(placement) >= posMoves.get(bestMove)) {
                 bestMove = placement;
             }
         }
 
-        // Return the best available move
+//        // Switch the turn of the player
+//        isTurnP1 = !isTurnP1;
+        // Return the best available move for the given player
         return bestMove;
     }
+
+    // Helper method for getBestMove()
+    // Return the score (0-2) of a given piece placement
+    public int getMoveScore(int row, int col, int playerNum) {
+        // Create a game state where the piece is placed (set index to playerNum to show that the given player has
+        // placed the piece)
+        board[row][col] = playerNum;
+        // Then check to see if the move results in a win
+        int holdLastRow = lastRow;
+        int holdLastCol = lastCol;
+        lastRow = row;
+        lastCol = col;
+        // If the move results in an immediate win, return 2 to show that the move should be taken immediately
+        if (gameWinner(playerNum == 1)) {
+            // Reset lastRow and lastCol to their original values
+            lastRow = holdLastRow;
+            lastCol = holdLastCol;
+            // Reset the index to its original state
+            board[row][col] = 0;
+            // Then return 2
+            return 2;
+        }
+        // Otherwise just reset lastRow and lastCol to their original values
+        lastRow = holdLastRow;
+        lastCol = holdLastCol;
+
+        // Get the opponent's player number
+        int opponentNum;
+        if (playerNum == 1) {
+            opponentNum = 2;
+        }
+        else {
+            opponentNum = 1;
+        }
+
+        // If the move doesn't result in an immediate win, check to see if the opponent can get an immediate win after
+        // Iterate through every available square on the board
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                // Continue to the next index if the current index is unavailable
+                if (board[i][j] != 0) {
+                    continue;
+                }
+                // Temporarily place a piece of the opponent to simulate that move
+                board[i][j] = opponentNum;
+                holdLastRow = lastRow;
+                holdLastCol = lastCol;
+                lastRow = i;
+                lastCol = j;
+                // If there is a move that can result in an immediate win for the opponent return 0 to show that the
+                // original placement should not be done
+                if (gameWinner(opponentNum == 1)) {
+                    // Reset lastRow and lastCol to their original values
+                    lastRow = holdLastRow;
+                    lastCol = holdLastCol;
+                    // Reset the index to its original state
+                    board[i][j] = 0;
+                    // Reset the original move
+                    board[row][col] = 0;
+                    // Then return 0
+                    return 0;
+                }
+                // Otherwise just reset lastRow and lastCol to their original values
+                lastRow = holdLastRow;
+                lastCol = holdLastCol;
+                // Also return the index to its original state
+                board[i][j] = 0;
+            }
+        }
+
+        // Reset the original index to its original state
+        board[row][col] = 0;
+        // Return 1 to show that the move doesn't result in an immediate win, nor does it give the opponent a chance
+        // for an immediate win
+        return 1;
+    }
+
 }

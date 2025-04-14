@@ -213,6 +213,42 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
                             } else {
                                 state = game.isTurnP1 ? GameState.PLAYER1_TURN : GameState.PLAYER2_TURN;
                                 repaint();
+
+                                if (isSinglePlayer && !game.isTurnP1) {
+                                    Point bestMove = game.getBestMove(2);
+                                    if (bestMove != null) {
+                                        Timer aiMoveTimer = new Timer(500, evt -> {
+                                            game.takeTurn(bestMove.x, bestMove.y);
+                                            if (game.gameOver) {
+                                                if (isBoardFull() && !hasWinner()) {
+                                                    state = GameState.DRAW;
+                                                } else {
+                                                    isPulsing = true;
+                                                    pulseStartTime = System.currentTimeMillis();
+                                                    pulseTimer = new Timer(50, new ActionListener() {
+                                                        @Override
+                                                        public void actionPerformed(ActionEvent e2) {
+                                                            long elapsed = System.currentTimeMillis() - pulseStartTime;
+                                                            if (elapsed >= 3000) {
+                                                                isPulsing = false;
+                                                                pulseTimer.stop();
+                                                                state = GameState.ENGINE_WIN;
+                                                                playWinMusic();
+                                                            }
+                                                            repaint();
+                                                        }
+                                                    });
+                                                    pulseTimer.start();
+                                                }
+                                            } else {
+                                                state = GameState.PLAYER1_TURN;
+                                            }
+                                            repaint();
+                                        });
+                                        aiMoveTimer.setRepeats(false);
+                                        aiMoveTimer.start();
+                                    }
+                                }
                             }
                         }
                     }
@@ -257,7 +293,6 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
         new Connect5Viewer(true);
     }
 
-    // Audio player class to manage background music
     static class AudioPlayer {
         private Clip clip;
 
