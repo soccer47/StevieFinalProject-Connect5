@@ -61,7 +61,7 @@ public class Connect5 {
         return true;
     }
 
-    // Return the player who has won the game, or 0 if neither has won yet
+    // Return true if the player who just moved has won the game, or false if not
     public boolean gameWinner(boolean isTurnP1) {
 
         // Get the integer to check for a streak of (1 = player 1, 2 = player 2)
@@ -77,9 +77,17 @@ public class Connect5 {
                 if (i == 0 && j == 0) {
                     continue;
                 }
-                // If the last move resulted in a streak of equal to or more than WIN_LENGTH in the given direction
-                // return true
-                if (countStreak(lastRow + i, lastCol + j, i, j, validNum) >= WIN_LENGTH) {
+                // Skip redundant direction checks
+                if (i > 0 || (i == 0 && j > 0)) {
+                    continue;
+                }
+
+                // Count streaks in both forward and backward directions from the last move
+                int forward = countStreak(lastRow + i, lastCol + j, i, j, validNum);
+                int backward = countStreak(lastRow - i, lastCol - j, -i, -j, validNum);
+
+                // Add 1 to forward and backward streaks to account for last piece placed
+                if (forward + backward + 1 >= WIN_LENGTH) {
                     return true;
                 }
             }
@@ -89,13 +97,12 @@ public class Connect5 {
     }
 
     // Helper method for gameWinner
-    // Return true if the inputted row of five spaces on the board results all contain the same number
+    // Return the number of consecutive validNum pieces in the given direction from (row, col)
     // Takes in the starting row and col, as well as direction of traversal
-    // Continues until streak of five has been achieved, or until another integer has been hit/an index is out of bounds
+    // Continues until streak of same number has been broken, or an index is out of bounds
     public int countStreak(int row, int col, int rowIncrement, int colIncrement, int validNum) {
-        // The number of current player's pieces in a row
-        // Start at 1 because last clicked index is already included
-        int count = 1;
+        // The number of current player's pieces in a row (excluding last piece placed)
+        int count = 0;
         // Continue while index being checked is in bounds and
         while (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] == validNum) {
             // If the index is valid increment count, as well as the row and col being checked
@@ -106,6 +113,7 @@ public class Connect5 {
         // Return the number of current player's pieces in a row
         return count;
     }
+
 
 
     // Engine method
@@ -147,8 +155,6 @@ public class Connect5 {
             }
         }
 
-//        // Switch the turn of the player
-//        isTurnP1 = !isTurnP1;
         // Return the best available move for the given player
         return bestMove;
     }
@@ -159,64 +165,64 @@ public class Connect5 {
         // Create a game state where the piece is placed (set index to playerNum to show that the given player has
         // placed the piece)
         board[row][col] = playerNum;
-        // Then check to see if the move results in a win
+
+        // Temporarily store the original position for lastRow and lastCol
         int holdLastRow = lastRow;
         int holdLastCol = lastCol;
+
+        // Update lastRow and lastCol for the current move
         lastRow = row;
         lastCol = col;
-        // If the move results in an immediate win, return 2 to show that the move should be taken immediately
+
+        // If the move results in an immediate win, return 2
         if (gameWinner(playerNum == 1)) {
             // Reset lastRow and lastCol to their original values
             lastRow = holdLastRow;
             lastCol = holdLastCol;
             // Reset the index to its original state
             board[row][col] = 0;
-            // Then return 2
             return 2;
         }
-        // Otherwise just reset lastRow and lastCol to their original values
+
+        // Otherwise reset lastRow and lastCol to their original values
         lastRow = holdLastRow;
         lastCol = holdLastCol;
 
         // Get the opponent's player number
-        int opponentNum;
-        if (playerNum == 1) {
-            opponentNum = 2;
-        }
-        else {
-            opponentNum = 1;
-        }
+        int opponentNum = (playerNum == 1) ? 2 : 1;
 
-        // If the move doesn't result in an immediate win, check to see if the opponent can get an immediate win after
-        // Iterate through every available square on the board
+        // Now check if the opponent can get an immediate win after the simulated move
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
                 // Continue to the next index if the current index is unavailable
                 if (board[i][j] != 0) {
                     continue;
                 }
+
                 // Temporarily place a piece of the opponent to simulate that move
                 board[i][j] = opponentNum;
-                holdLastRow = lastRow;
-                holdLastCol = lastCol;
+
+                // Use local variables to simulate the opponent's move
+                int tempRow = lastRow;
+                int tempCol = lastCol;
                 lastRow = i;
                 lastCol = j;
-                // If there is a move that can result in an immediate win for the opponent return 0 to show that the
-                // original placement should not be done
+
+                // If there is a move that can result in an immediate win for the opponent, return 0
                 if (gameWinner(opponentNum == 1)) {
                     // Reset lastRow and lastCol to their original values
-                    lastRow = holdLastRow;
-                    lastCol = holdLastCol;
+                    lastRow = tempRow;
+                    lastCol = tempCol;
                     // Reset the index to its original state
                     board[i][j] = 0;
                     // Reset the original move
                     board[row][col] = 0;
-                    // Then return 0
                     return 0;
                 }
+
                 // Otherwise just reset lastRow and lastCol to their original values
-                lastRow = holdLastRow;
-                lastCol = holdLastCol;
+                lastRow = tempRow;
+                lastCol = tempCol;
                 // Also return the index to its original state
                 board[i][j] = 0;
             }
@@ -228,5 +234,6 @@ public class Connect5 {
         // for an immediate win
         return 1;
     }
+
 
 }
