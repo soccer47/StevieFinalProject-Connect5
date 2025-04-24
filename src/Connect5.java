@@ -1,6 +1,3 @@
-import java.awt.*;
-import java.util.HashMap;
-
 public class Connect5 {
     // Instance variables
     // 2D array representing game board
@@ -20,7 +17,6 @@ public class Connect5 {
     // Integer representing the column of the last piece placed
     static int lastCol;
 
-
     public Connect5(boolean singlePlayer) {
         board = new int[BOARD_SIZE][BOARD_SIZE];
         isSinglePlayer = singlePlayer;
@@ -31,12 +27,10 @@ public class Connect5 {
     public boolean takeTurn(int row, int col) {
         // Make sure the specified spot on the board exists
         if (row < 0 || row > BOARD_SIZE - 1 || col < 0 || col > BOARD_SIZE - 1) {
-            // Return false and prompt user to enter another spot if current spot doesn't exist on the board
             return false;
         }
         // Make sure the specified spot on the board is available
         if (board[row][col] != 0) {
-            // Return false and prompt user to enter another spot if current spot is occupied already
             return false;
         }
         // Otherwise update the spot on the board with a new integer representing the player who put down the piece
@@ -47,40 +41,28 @@ public class Connect5 {
         lastCol = col;
         // Check to see if the game has been won
         if (gameWinner(isTurnP1)) {
-            // If so, set gameOver to true
             gameOver = true;
-            // Then return true to get to exit and get to the gameOver screen
             return true;
-        }
-        // Otherwise continue with the game
-        else {
+        } else {
             // Switch the turn to the other player
             isTurnP1 = !isTurnP1;
         }
-        // Return true to show the move and updating of the board was successful
         return true;
     }
 
     // Return true if the player who just moved has won the game, or false if not
     public boolean gameWinner(boolean isTurnP1) {
-
         // Get the integer to check for a streak of (1 = player 1, 2 = player 2)
-        int validNum;
-        if (isTurnP1) {validNum = 1;}
-        else {validNum = 2;}
+        int validNum = isTurnP1 ? 1 : 2;
 
         // Check to see if the previous move resulted in a winning streak
         // Start by looking diagonally down and left from current spot, then proceed clockwise
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 // Skip if direction is (0,0) because that’s not a direction
-                if (i == 0 && j == 0) {
-                    continue;
-                }
+                if (i == 0 && j == 0) continue;
                 // Skip redundant direction checks
-                if (i > 0 || (i == 0 && j > 0)) {
-                    continue;
-                }
+                if (i > 0 || (i == 0 && j > 0)) continue;
 
                 // Count streaks in both forward and backward directions from the last move
                 int forward = countStreak(lastRow + i, lastCol + j, i, j, validNum);
@@ -92,7 +74,6 @@ public class Connect5 {
                 }
             }
         }
-        // If the last move didn't result in a winning streak, return false
         return false;
     }
 
@@ -101,139 +82,118 @@ public class Connect5 {
     // Takes in the starting row and col, as well as direction of traversal
     // Continues until streak of same number has been broken, or an index is out of bounds
     public int countStreak(int row, int col, int rowIncrement, int colIncrement, int validNum) {
-        // The number of current player's pieces in a row (excluding last piece placed)
         int count = 0;
-        // Continue while index being checked is in bounds and
         while (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] == validNum) {
-            // If the index is valid increment count, as well as the row and col being checked
             count++;
             row += rowIncrement;
             col += colIncrement;
         }
-        // Return the number of current player's pieces in a row
         return count;
     }
 
-
-
     // Engine method
     // Return coordinates of the best available move for given game scenario, for the given player
-    public Point getBestMove(int playerNum) {
-        // HashMap to contain coordinates (keys) and their scores (values) of possible moves
-        HashMap<Point, Integer> posMoves = new HashMap<>();
+    // Recursively return the move with the highest guaranteed score up to the given depth
+    public Move minimax(int[][] board, int depth, boolean isMaxing) {
+        // Base Case
+        // Find out if the game has been won or lost
+        int gameState = evaluate(board);
+        // If this version of the game is over, or depth limit reached, return the score associated with this outcome
+        if (gameState != 0 || depth == 0) {
+            return new Move(-1, -1, gameState);
+        }
 
-        // Iterate through every available square on the board
+        // Initialize best move depending on whether maximizing or minimizing
+        Move bestMove;
+        if (isMaxing) {
+            bestMove = new Move(-1, -1, Integer.MIN_VALUE);
+        }
+        else {
+            bestMove = new Move(-1, -1, Integer.MAX_VALUE);
+        }
+
+        // Loop through all possible valid moves
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
-                // Continue to the next index if the current index is unavailable
-                if (board[i][j] != 0) {
-                    continue;
+                // Only consider empty spots on the board (0 means empty)
+                if (board[i][j] == 0) {
+                    // Create a copy of the board
+                    int[][] newBoard = new int[BOARD_SIZE][BOARD_SIZE];
+                    for (int r = 0; r < BOARD_SIZE; r++) {
+                        System.arraycopy(board[r], 0, newBoard[r], 0, BOARD_SIZE);
+                    }
+
+                    // Simulate making this move
+                    // Maxing player uses 2, minimizing player uses 1
+                    if (isMaxing) {
+                        newBoard[i][j] = 2;
+                    }
+                    else {
+                        newBoard[i][j] = 1;
+                    }
+
+
+                    // Recurse, switch to the other player's turn
+                    Move currentMove = minimax(newBoard, depth - 1, !isMaxing);
+                    // Update the row and col of the current move
+                    currentMove.row = i;
+                    currentMove.col = j;
+
+                    // Choose the best move based on current player
+                    if (isMaxing && currentMove.score > bestMove.score) {
+                        // Maximizing player's best move
+                        bestMove = currentMove;
+                    } else if (!isMaxing && currentMove.score < bestMove.score) {
+                        // Minimizing player's best move
+                        bestMove = currentMove;
+                    }
                 }
-                // Get the move score of the current placement
-                int givenMove = getMoveScore(i, j, playerNum);
-                // If the move results in an immediate win, return those coordinates so the move can be made immediately
-                if (givenMove == 2) {
-                    return new Point(i, j);
-                }
-                // Otherwise get the score of the move and add it to the HashMap with the given coordinates
-                posMoves.put(new Point(i, j), givenMove);
             }
         }
 
-        // Integer to hold coordinates of highest scored move
-        Point bestMove = new Point(-1, -1);
-
-        // Iterate through the HashMap of possible moves to find the one with the highest score
-        for (Point placement : posMoves.keySet()) {
-            // If bestMove hasn't been altered yet, set it to the first key in the HashMap
-            if (bestMove.x == -1) {
-                bestMove = placement;
-            }
-            // Otherwise update bestMove if the current possible move is associated with a higher score
-            else if (posMoves.get(placement) >= posMoves.get(bestMove)) {
-                bestMove = placement;
-            }
-        }
-
-        // Return the best available move for the given player
+        // Return the best move found
         return bestMove;
     }
 
-    // Helper method for getBestMove()
-    // Return the score (0-2) of a given piece placement
-    public int getMoveScore(int row, int col, int playerNum) {
-        // Create a game state where the piece is placed (set index to playerNum to show that the given player has
-        // placed the piece)
-        board[row][col] = playerNum;
 
-        // Temporarily store the original position for lastRow and lastCol
-        int holdLastRow = lastRow;
-        int holdLastCol = lastCol;
-
-        // Update lastRow and lastCol for the current move
-        lastRow = row;
-        lastCol = col;
-
-        // If the move results in an immediate win, return 2
-        if (gameWinner(playerNum == 1)) {
-            // Reset lastRow and lastCol to their original values
-            lastRow = holdLastRow;
-            lastCol = holdLastCol;
-            // Reset the index to its original state
-            board[row][col] = 0;
-            return 2;
-        }
-
-        // Otherwise reset lastRow and lastCol to their original values
-        lastRow = holdLastRow;
-        lastCol = holdLastCol;
-
-        // Get the opponent's player number
-        int opponentNum = (playerNum == 1) ? 2 : 1;
-
-        // Now check if the opponent can get an immediate win after the simulated move
+    // Helper method for minimax
+    // Return state of game (0 = not decided, -1 = draw, -10 = P1 wins, 10 = P2 wins)
+    public int evaluate(int[][] board) {
+        // Iterate through every cell on the board
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
-                // Continue to the next index if the current index is unavailable
-                if (board[i][j] != 0) {
-                    continue;
+                // Get the value at the current index
+                int index = board[i][j];
+                // Skip the current index if it's empty
+                if (index == 0) continue;
+
+                // Check all four directions for a streak of 3
+                if (
+                        // Horizontal
+                        countStreak(i, j, 0, 1, index) >= 3 ||
+                                // Vertical
+                                countStreak(i, j, 1, 0, index) >= WIN_LENGTH ||
+                                // Down-right diagonal
+                                countStreak(i, j, 1, 1, index) >= WIN_LENGTH ||
+                                // Up-right diagonal
+                                countStreak(i, j, -1, 1, index) >= WIN_LENGTH
+                ) {
+                    return index == 1 ? -10 : 10;
                 }
-
-                // Temporarily place a piece of the opponent to simulate that move
-                board[i][j] = opponentNum;
-
-                // Use local variables to simulate the opponent's move
-                int tempRow = lastRow;
-                int tempCol = lastCol;
-                lastRow = i;
-                lastCol = j;
-
-                // If there is a move that can result in an immediate win for the opponent, return 0
-                if (gameWinner(opponentNum == 1)) {
-                    // Reset lastRow and lastCol to their original values
-                    lastRow = tempRow;
-                    lastCol = tempCol;
-                    // Reset the index to its original state
-                    board[i][j] = 0;
-                    // Reset the original move
-                    board[row][col] = 0;
-                    return 0;
-                }
-
-                // Otherwise just reset lastRow and lastCol to their original values
-                lastRow = tempRow;
-                lastCol = tempCol;
-                // Also return the index to its original state
-                board[i][j] = 0;
             }
         }
 
-        // Reset the original index to its original state
-        board[row][col] = 0;
-        // Return 1 to show that the move doesn't result in an immediate win, nor does it give the opponent a chance
-        // for an immediate win
-        return 1;
+        // Check for draw (board full, no winner)
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                // If an empty index has been found and there's no winner, game is still ongoing so return 0
+                if (board[i][j] == 0) {
+                    return 0;
+                }
+            }
+        }
+
+        // If no winner and board is full, it's a draw so return -1
+        return -1;
     }
-
-
 }
