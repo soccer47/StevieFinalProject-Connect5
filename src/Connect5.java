@@ -39,34 +39,41 @@ public class Connect5 {
         // Update the last row and col variables
         lastRow = row;
         lastCol = col;
-        // Check to see if the game has been won
+
+        // Check to see if the game was won
         if (gameWinner(isTurnP1)) {
             gameOver = true;
             return true;
-        } else {
-            // Switch the turn to the other player
-            isTurnP1 = !isTurnP1;
         }
+
+        // Switch turn only if no win
+        isTurnP1 = !isTurnP1;
         return true;
     }
 
     // Return true if the player who just moved has won the game, or false if not
     public boolean gameWinner(boolean isTurnP1) {
         // Get the integer to check for a streak of (1 = player 1, 2 = player 2)
-        int validNum = isTurnP1 ? 1 : 2;
+        int validNum;
+        if (isTurnP1) {
+            validNum = 1;
+        }
+        else {
+            validNum = 2;
+        }
 
         // Check to see if the previous move resulted in a winning streak
         // Start by looking diagonally down and left from current spot, then proceed clockwise
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 // Skip if direction is (0,0) because that’s not a direction
-                if (i == 0 && j == 0) continue;
+                if (i == 0 && j == 0) {continue;}
                 // Skip redundant direction checks
-                if (i > 0 || (i == 0 && j > 0)) continue;
+                if (i > 0 || (i == 0 && j > 0)) {continue;}
 
                 // Count streaks in both forward and backward directions from the last move
-                int forward = countStreak(lastRow + i, lastCol + j, i, j, validNum);
-                int backward = countStreak(lastRow - i, lastCol - j, -i, -j, validNum);
+                int forward = countStreak(board, lastRow + i, lastCol + j, i, j, validNum);
+                int backward = countStreak(board, lastRow - i, lastCol - j, -i, -j, validNum);
 
                 // Add 1 to forward and backward streaks to account for last piece placed
                 if (forward + backward + 1 >= WIN_LENGTH) {
@@ -81,9 +88,10 @@ public class Connect5 {
     // Return the number of consecutive validNum pieces in the given direction from (row, col)
     // Takes in the starting row and col, as well as direction of traversal
     // Continues until streak of same number has been broken, or an index is out of bounds
-    public int countStreak(int row, int col, int rowIncrement, int colIncrement, int validNum) {
+    public int countStreak(int[][] theBoard, int row, int col, int rowIncrement, int colIncrement, int validNum) {
         int count = 0;
-        while (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] == validNum) {
+        // While the next index matches the validNum, increment count, row, and col accordingly
+        while (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && theBoard[row][col] == validNum) {
             count++;
             row += rowIncrement;
             col += colIncrement;
@@ -117,28 +125,25 @@ public class Connect5 {
             for (int j = 0; j < BOARD_SIZE; j++) {
                 // Only consider empty spots on the board (0 means empty)
                 if (board[i][j] == 0) {
-                    // Create a copy of the board
-                    int[][] newBoard = new int[BOARD_SIZE][BOARD_SIZE];
-                    for (int r = 0; r < BOARD_SIZE; r++) {
-                        System.arraycopy(board[r], 0, newBoard[r], 0, BOARD_SIZE);
-                    }
-
                     // Simulate making this move
                     // Maxing player uses 2, minimizing player uses 1
                     if (isMaxing) {
-                        newBoard[i][j] = 2;
+                        board[i][j] = 2;
                     }
                     else {
-                        newBoard[i][j] = 1;
+                        board[i][j] = 1;
                     }
 
-
                     // Recurse, switch to the other player's turn
-                    Move currentMove = minimax(newBoard, depth - 1, !isMaxing);
-                    // Update the row and col of the current move
+                    Move currentMove = minimax(board, depth - 1, !isMaxing);
+                    // Update the row and col of the current move back to the current coordinates
                     currentMove.row = i;
                     currentMove.col = j;
 
+                    // Pick the first move if bestMove hasn't been changed yet
+                    if (bestMove.row == -1) {
+                        bestMove = currentMove;
+                    }
                     // Choose the best move based on current player
                     if (isMaxing && currentMove.score > bestMove.score) {
                         // Maximizing player's best move
@@ -147,6 +152,9 @@ public class Connect5 {
                         // Minimizing player's best move
                         bestMove = currentMove;
                     }
+
+                    // Reset the index on the board to its original state for the next iteration
+                    board[i][j] = 0;
                 }
             }
         }
@@ -157,43 +165,72 @@ public class Connect5 {
 
 
     // Helper method for minimax
-    // Return state of game (0 = not decided, -1 = draw, -10 = P1 wins, 10 = P2 wins)
+    // Return state of game (-100 = P1 wins, 100 = P2 wins)
     public int evaluate(int[][] board) {
-        // Iterate through every cell on the board
+        // Iterate through every cell on the board, checking for winning streaks
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
                 // Get the value at the current index
                 int index = board[i][j];
                 // Skip the current index if it's empty
-                if (index == 0) continue;
+                if (index == 0) {continue;}
 
-                // Check all four directions for a streak of 3
+                // Check all four directions for a winning streak
                 if (
                         // Horizontal
-                        countStreak(i, j, 0, 1, index) >= 3 ||
+                        countStreak(board, i, j, 0, 1, index) >= WIN_LENGTH ||
                                 // Vertical
-                                countStreak(i, j, 1, 0, index) >= WIN_LENGTH ||
+                                countStreak(board, i, j, 1, 0, index) >= WIN_LENGTH ||
                                 // Down-right diagonal
-                                countStreak(i, j, 1, 1, index) >= WIN_LENGTH ||
+                                countStreak(board, i, j, 1, 1, index) >= WIN_LENGTH ||
                                 // Up-right diagonal
-                                countStreak(i, j, -1, 1, index) >= WIN_LENGTH
+                                countStreak(board, i, j, -1, 1, index) >= WIN_LENGTH
                 ) {
-                    return index == 1 ? -10 : 10;
+                    // If the streak is of 1s, return -100 to show that the human has won
+                    if (index == 1) {
+                        return -100;
+                    }
+                    // Otherwise return 100 to show that the computer has won
+                    else {
+                        return 100;
+                    }
                 }
             }
         }
 
-        // Check for draw (board full, no winner)
-        for (int i = 0; i < BOARD_SIZE; i++) {
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                // If an empty index has been found and there's no winner, game is still ongoing so return 0
-                if (board[i][j] == 0) {
-                    return 0;
+        // If no winning streak is found, iterate through the board again, checking for shorter streaks
+        int subScore = 0;
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board.length; j++) {
+                // Get the value at the current index
+                int index = board[i][j];
+                // Skip the current index if it's empty
+                if (index == 0) {continue;}
+
+                // Check all four directions for a streak of 1 less than a winning streak
+                if (
+                    // Horizontal
+                        countStreak(board, i, j, 0, 1, index) == WIN_LENGTH - 1 ||
+                                // Vertical
+                                countStreak(board, i, j, 1, 0, index) == WIN_LENGTH - 1 ||
+                                // Down-right diagonal
+                                countStreak(board, i, j, 1, 1, index) == WIN_LENGTH - 1 ||
+                                // Up-right diagonal
+                                countStreak(board, i, j, -1, 1, index) == WIN_LENGTH - 1
+                ) {
+                    // If the streak is of 1s, subtract 5 from subScore
+                    if (index == 1) {
+                        subScore -= 5;
+                    }
+                    // Otherwise add 5 to subScore
+                    else {
+                        subScore += 5;
+                    }
                 }
             }
         }
 
-        // If no winner and board is full, it's a draw so return -1
-        return -1;
+        // If there's no winner, return the subScore
+        return subScore;
     }
 }
