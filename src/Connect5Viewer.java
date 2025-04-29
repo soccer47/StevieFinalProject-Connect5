@@ -235,7 +235,8 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
                                 repaint();
 
                                 if (isSinglePlayer && !game.isTurnP1) {
-                                    Move bestMove = game.minimax(game.board, DEPTH, true); // AI move
+                                    int[][] boardCopy = deepCopyBoard(game.board);
+                                    Move bestMove = game.minimax(boardCopy, DEPTH, true, -1, -1); // AI move
                                     if (bestMove != null) {
                                         Timer aiMoveTimer = new Timer(500, evt -> {
                                             game.takeTurn(bestMove.row, bestMove.col);
@@ -287,6 +288,17 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
         }
         return true;
     }
+
+    private int[][] deepCopyBoard(int[][] original) {
+        if (original == null) return null;
+        int[][] copy = new int[original.length][];
+        for (int i = 0; i < original.length; i++) {
+            copy[i] = java.util.Arrays.copyOf(original[i], original[i].length);
+        }
+        return copy;
+    }
+
+
 
     private boolean hasWinner() {
         return state == GameState.PLAYER1_WIN || state == GameState.PLAYER2_WIN || state == GameState.ENGINE_WIN;

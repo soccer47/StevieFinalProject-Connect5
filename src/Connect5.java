@@ -102,13 +102,14 @@ public class Connect5 {
     // Engine method
     // Return coordinates of the best available move for given game scenario, for the given player
     // Recursively return the move with the highest guaranteed score up to the given depth
-    public Move minimax(int[][] board, int depth, boolean isMaxing) {
+    public Move minimax(int[][] board, int depth, boolean isMaxing, int OGRow, int OGCol) {
         // Base Case
         // Find out if the game has been won or lost
         int gameState = evaluate(board);
         // If this version of the game is over, or depth limit reached, return the score associated with this outcome
+        // along with the coordinates of the first move
         if (gameState != 0 || depth == 0) {
-            return new Move(-1, -1, gameState);
+            return new Move(OGRow, OGCol, gameState);
         }
 
         // Initialize best move depending on whether maximizing or minimizing
@@ -135,14 +136,19 @@ public class Connect5 {
                     }
 
                     // Recurse, switch to the other player's turn
-                    Move currentMove = minimax(board, depth - 1, !isMaxing);
-                    // Update the row and col of the current move back to the current coordinates
-                    currentMove.row = i;
-                    currentMove.col = j;
+                    // If the first row and col haven't been initialized yet, make the original coordinates this index
+                    Move currentMove;
+                    if (OGRow == -1) {
+                        currentMove = minimax(board, depth - 1, !isMaxing, i, j);
+                    }
+                    // Otherwise keep the original coordinates
+                    else {
+                        currentMove = minimax(board, depth - 1, !isMaxing, OGRow, OGCol);
+                    }
 
                     // Pick the first move if bestMove hasn't been changed yet
-                    if (bestMove.row == -1) {
-                        bestMove = currentMove;
+                    if (currentMove == null) {
+                        continue;
                     }
                     // Choose the best move based on current player
                     if (isMaxing && currentMove.score > bestMove.score) {
