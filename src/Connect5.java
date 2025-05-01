@@ -108,7 +108,7 @@ public class Connect5 {
         int gameState = evaluate(board);
         // If this version of the game is over, or depth limit reached, return the score associated with this outcome
         // along with the coordinates of the first move
-        if (gameState != 0 || depth == 0) {
+        if (gameState == 100 || gameState == -100 || depth == 0) {
             return new Move(OGRow, OGCol, gameState);
         }
 
@@ -135,16 +135,23 @@ public class Connect5 {
                         board[i][j] = 1;
                     }
 
-                    // Recurse, switch to the other player's turn
                     // If the first row and col haven't been initialized yet, make the original coordinates this index
-                    Move currentMove;
+                    // Set the row and column for the first move in the sequence
+                    int moveRow;
+                    int moveCol;
+                    // Set moveRow and moveCol to the current index if this is the first move being taken in the tree
                     if (OGRow == -1) {
-                        currentMove = minimax(board, depth - 1, !isMaxing, i, j);
+                        moveRow = i;
+                        moveCol = j;
                     }
-                    // Otherwise keep the original coordinates
+                    // Otherwise set them to the coordinates of the original move
                     else {
-                        currentMove = minimax(board, depth - 1, !isMaxing, OGRow, OGCol);
+                        moveRow = OGRow;
+                        moveCol = OGCol;
                     }
+
+                    // Recurse, switch to the other player's turn
+                    Move currentMove = minimax(board, depth - 1, !isMaxing, moveRow, moveCol);
 
                     // Pick the first move if bestMove hasn't been changed yet
                     if (currentMove == null) {
@@ -226,11 +233,11 @@ public class Connect5 {
                 ) {
                     // If the streak is of 1s, subtract 5 from subScore
                     if (index == 1) {
-                        subScore -= 5;
+                        subScore -= 1;
                     }
                     // Otherwise add 5 to subScore
                     else {
-                        subScore += 5;
+                        subScore += 1;
                     }
                 }
             }
