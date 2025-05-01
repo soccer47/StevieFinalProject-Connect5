@@ -14,37 +14,35 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
     private ImageIcon startingScreen, turnP1, turnP2, winP1, winP2, winEngine, winDraw;
     private GameState state;
     private boolean isSinglePlayer;
-    private Connect5 game; // Ensure this is initialized
-    private final int GRID_SIZE = 5;
-    private final int CIRCLE_RADIUS = 30;
+    private Connect5 game;
+    private final int GRID_SIZE = 7;
     private Point[][] gridPoints = new Point[GRID_SIZE][GRID_SIZE];
+    private int cellWidth, cellHeight;
     private AudioPlayer audioPlayer;
-    private static final int DEPTH = 5;
+    private Color hotPink = new Color(255, 95, 150);
+    private static final int DEPTH = 4;
 
-    // Pulse effect fields for animating the last move
     private boolean isPulsing = false;
     private long pulseStartTime = 0;
     private Timer pulseTimer;
 
-    // Constructor to initialize the game
     public Connect5Viewer(boolean isSinglePlayer) {
         this.isSinglePlayer = isSinglePlayer;
-        this.game = new Connect5(isSinglePlayer);  // Ensure game is initialized here
-        this.state = GameState.START; // Game starts at the "Start" state
+        this.game = new Connect5(isSinglePlayer);
+        this.state = GameState.START;
 
-        loadImages(); // Load image assets
-        setupFrame(); // Set up JFrame
-        calculateGridPoints(); // Calculate grid layout
-        addMouseListener(this); // Add mouse listener for interaction
-        addKeyListener(this); // Add key listener for reset functionality
+        loadImages();
+        setupFrame();
+        calculateGridPoints();
+        addMouseListener(this);
+        addKeyListener(this);
         setFocusable(true);
         requestFocusInWindow();
 
-        audioPlayer = new AudioPlayer(); // Initialize audio player
-        playStartingMusic(); // Play the starting music
+        audioPlayer = new AudioPlayer();
+        playStartingMusic();
     }
 
-    // Method to load images for different game states
     private void loadImages() {
         startingScreen = new ImageIcon("Resources/startingScreen.png");
         turnP1 = new ImageIcon("Resources/turnP1.png");
@@ -55,55 +53,47 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
         winDraw = new ImageIcon("Resources/winDraw.png");
     }
 
-    // Setup the main game frame
     private void setupFrame() {
         frame = new JFrame("Connect 5");
         frame.setSize(1200, 850);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(this); // Add the game panel
-        frame.setVisible(true); // Make frame visible
+        frame.add(this);
+        frame.setVisible(true);
     }
 
-    // Calculate grid points for the 5x5 grid
     private void calculateGridPoints() {
-        int xStart = 200;
-        int xEnd = 580;
-        int yStart = 190;
-        int yEnd = 615;
+        int xStart = 128;
+        int xEnd = 673;
+        int yStart = 115;
+        int yEnd = 767;
 
-        int xStep = (xEnd - xStart) / (GRID_SIZE - 1);
-        int yStep = (yEnd - yStart) / (GRID_SIZE - 1);
+        cellWidth = 78;
+        cellHeight = 84;
 
         for (int r = 0; r < GRID_SIZE; r++) {
             for (int c = 0; c < GRID_SIZE; c++) {
-                int x = xStart + c * xStep;
-                int y = yStart + r * yStep;
-                gridPoints[r][c] = new Point(x, y); // Store grid points
+                int x = xStart + c * cellWidth + cellWidth / 2;
+                int y = yStart + r * cellHeight + cellHeight / 2;
+                gridPoints[r][c] = new Point(x, y);
             }
         }
     }
 
-    // Play starting music
     private void playStartingMusic() {
         audioPlayer.playMusic("Resources/startingMusic.wav");
     }
 
-    // Play game music during gameplay
     private void playGameMusic() {
         audioPlayer.playMusic("Resources/gameMusic.wav");
     }
 
-    // Play win music when the game ends
     private void playWinMusic() {
         audioPlayer.playMusic("Resources/winMusic.wav");
     }
 
-    // Method to draw game components on the screen
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-
-        // Draw the appropriate screen based on the game state
         switch (state) {
             case START -> g.drawImage(startingScreen.getImage(), 0, 0, getWidth(), getHeight(), null);
             case PLAYER1_TURN -> g.drawImage(turnP1.getImage(), 0, 0, getWidth(), getHeight(), null);
@@ -114,63 +104,61 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
             case DRAW -> g.drawImage(winDraw.getImage(), 0, 0, getWidth(), getHeight(), null);
         }
 
-        // Only draw the grid and pieces when in the game state or pulsing effect
         if (state == GameState.PLAYER1_TURN || state == GameState.PLAYER2_TURN || isPulsing) {
-            drawAllGridCircles(g);  // Draw grid circles
-            drawPieces(g);           // Draw the player pieces on the grid
+            drawPieces(g);
+            drawAllGridSquares(g);
         }
     }
 
-    // Draw all the grid circles on the board
-    private void drawAllGridCircles(Graphics g) {
-        g.setColor(Color.GRAY); // Set the grid color
+    private void drawAllGridSquares(Graphics g) {
+        g.setColor(Color.BLACK);
         for (int r = 0; r < GRID_SIZE; r++) {
             for (int c = 0; c < GRID_SIZE; c++) {
                 Point p = gridPoints[r][c];
-                g.drawOval(p.x - CIRCLE_RADIUS, p.y - CIRCLE_RADIUS, CIRCLE_RADIUS * 2, CIRCLE_RADIUS * 2); // Draw circle at grid point
+                int x = p.x - cellWidth / 2;
+                int y = p.y - cellHeight / 2;
+                g.drawRect(x, y, cellWidth, cellHeight);
             }
         }
     }
 
-    // Draw the player pieces (P1 and P2) on the grid
     private void drawPieces(Graphics g) {
-        int[][] board = game.board; // Get the current board state
-        long elapsed = System.currentTimeMillis() - pulseStartTime; // Track pulse animation
+        int[][] board = game.board;
+        long elapsed = System.currentTimeMillis() - pulseStartTime;
 
-        // Iterate through each grid point and draw a piece if it's occupied
         for (int r = 0; r < GRID_SIZE; r++) {
             for (int c = 0; c < GRID_SIZE; c++) {
                 int val = board[r][c];
                 if (val != 0) {
                     Point p = gridPoints[r][c];
-                    boolean isLastPiece = isPulsing && r == game.lastRow && c == game.lastCol;
+                    boolean isLast = isPulsing && r == game.lastRow && c == game.lastCol;
+                    int drawWidth = cellWidth;
+                    int drawHeight = cellHeight;
 
-                    // Apply pulsing effect for the last placed piece
-                    if (isLastPiece) {
+                    if (isLast) {
                         double pulseFactor = 1.0 + 0.2 * Math.sin((elapsed / 100.0) * Math.PI);
-                        int radius = (int)(CIRCLE_RADIUS * pulseFactor);
-                        g.setColor(val == 1 ? Color.PINK : Color.CYAN);
-                        g.fillOval(p.x - radius, p.y - radius, radius * 2, radius * 2);
-                    } else {
-                        g.setColor(val == 1 ? Color.PINK : Color.CYAN);
-                        g.fillOval(p.x - CIRCLE_RADIUS, p.y - CIRCLE_RADIUS, CIRCLE_RADIUS * 2, CIRCLE_RADIUS * 2);
+                        drawWidth = (int)(cellWidth * pulseFactor);
+                        drawHeight = (int)(cellHeight * pulseFactor);
                     }
+
+                    int x = p.x - drawWidth / 2;
+                    int y = p.y - drawHeight / 2;
+
+                    g.setColor(val == 1 ? hotPink : Color.CYAN);
+                    g.fillRect(x, y, drawWidth, drawHeight);
                 }
             }
         }
     }
 
-    // Handle mouse click events to process player moves
     @Override
     public void mouseClicked(MouseEvent e) {
-        int x = e.getX();
-        int y = e.getY();
+        int x = e.getX(), y = e.getY();
 
-        // Handle start screen interactions
         if (state == GameState.START) {
             if (x >= 330 && x <= 577 && y >= 465 && y <= 540) {
                 isSinglePlayer = true;
-                game = new Connect5(isSinglePlayer);  // Initialize the game for single-player
+                game = new Connect5(isSinglePlayer);
                 calculateGridPoints();
                 state = GameState.PLAYER1_TURN;
                 playGameMusic();
@@ -178,7 +166,7 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
                 return;
             } else if (x >= 630 && x <= 880 && y >= 465 && y <= 540) {
                 isSinglePlayer = false;
-                game = new Connect5(isSinglePlayer);  // Initialize the game for multi-player
+                game = new Connect5(isSinglePlayer);
                 calculateGridPoints();
                 state = GameState.PLAYER1_TURN;
                 playGameMusic();
@@ -188,20 +176,21 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
             return;
         }
 
-        // Ensure game is not null and only process valid moves
         if (game == null || game.gameOver || (state != GameState.PLAYER1_TURN && state != GameState.PLAYER2_TURN)) return;
 
-        // Check if click was inside a grid circle and process the move
         for (int r = 0; r < GRID_SIZE; r++) {
             for (int c = 0; c < GRID_SIZE; c++) {
                 Point p = gridPoints[r][c];
-                if (Math.hypot(x - p.x, y - p.y) <= CIRCLE_RADIUS) {
+                int left = p.x - cellWidth / 2;
+                int top = p.y - cellHeight / 2;
+                Rectangle cellBounds = new Rectangle(left, top, cellWidth, cellHeight);
+
+                if (cellBounds.contains(x, y)) {
                     if (game.board[r][c] == 0) {
                         boolean currentPlayerIsP1 = game.isTurnP1;
                         boolean moveValid = game.takeTurn(r, c);
 
                         if (moveValid) {
-                            // Check if the game is over and handle win/draw
                             if (game.gameOver) {
                                 if (isBoardFull() && !hasWinner()) {
                                     state = GameState.DRAW;
@@ -218,11 +207,9 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
                                             if (elapsed >= 3000) {
                                                 isPulsing = false;
                                                 pulseTimer.stop();
-                                                if (isSinglePlayer) {
-                                                    state = currentPlayerIsP1 ? GameState.PLAYER1_WIN : GameState.ENGINE_WIN;
-                                                } else {
-                                                    state = currentPlayerIsP1 ? GameState.PLAYER1_WIN : GameState.PLAYER2_WIN;
-                                                }
+                                                state = isSinglePlayer ?
+                                                        (currentPlayerIsP1 ? GameState.PLAYER1_WIN : GameState.ENGINE_WIN) :
+                                                        (currentPlayerIsP1 ? GameState.PLAYER1_WIN : GameState.PLAYER2_WIN);
                                                 playWinMusic();
                                             }
                                             repaint();
@@ -236,10 +223,13 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
 
                                 if (isSinglePlayer && !game.isTurnP1) {
                                     int[][] boardCopy = deepCopyBoard(game.board);
-                                    Move bestMove = game.minimax(boardCopy, DEPTH, true, -1, -1); // AI move
+                                    Move bestMove = game.minimax(boardCopy, DEPTH, true, -1, -1);
+                                    if (bestMove == null) bestMove = getNextAvailableSpot();
+
                                     if (bestMove != null) {
+                                        Move finalBestMove = bestMove;
                                         Timer aiMoveTimer = new Timer(500, evt -> {
-                                            game.takeTurn(bestMove.row, bestMove.col);
+                                            game.takeTurn(finalBestMove.row, finalBestMove.col);
                                             if (game.gameOver) {
                                                 if (isBoardFull() && !hasWinner()) {
                                                     state = GameState.DRAW;
@@ -279,7 +269,6 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
         }
     }
 
-    // Helper methods to check if the board is full and if there's a winner
     private boolean isBoardFull() {
         for (int r = 0; r < GRID_SIZE; r++) {
             for (int c = 0; c < GRID_SIZE; c++) {
@@ -287,6 +276,15 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
             }
         }
         return true;
+    }
+
+    public Move getNextAvailableSpot() {
+        for (int i = 0; i < game.board.length; i++) {
+            for (int j = 0; j < GRID_SIZE; j++) {
+                if (game.board[i][j] == 0) return new Move(i, j, 0);
+            }
+        }
+        return new Move(0, 0, 0);
     }
 
     private int[][] deepCopyBoard(int[][] original) {
@@ -298,8 +296,6 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
         return copy;
     }
 
-
-
     private boolean hasWinner() {
         return state == GameState.PLAYER1_WIN || state == GameState.PLAYER2_WIN || state == GameState.ENGINE_WIN;
     }
@@ -307,7 +303,7 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
     @Override
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-            game = null; // Reset the game
+            game = null;
             state = GameState.START;
             calculateGridPoints();
             playStartingMusic();
@@ -326,7 +322,6 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
         new Connect5Viewer(true);
     }
 
-    // Audio player class to handle playing music
     static class AudioPlayer {
         private Clip clip;
 

@@ -7,11 +7,11 @@ public class Connect5 {
     // Boolean representing who's turn it is; true = player 1;
     public boolean isTurnP1 = true;
     // Length of streak required to win
-    public final int WIN_LENGTH = 3;
+    public final int WIN_LENGTH = 4;
     // Boolean representing whether the game is over
     public boolean gameOver = false;
     // Number of rows and columns of available spaces on game board
-    public final int BOARD_SIZE = 5;
+    public final int BOARD_SIZE = 7;
     // Integer representing the row of the last piece placed
     static int lastRow;
     // Integer representing the column of the last piece placed
@@ -34,8 +34,11 @@ public class Connect5 {
             return false;
         }
         // Otherwise update the spot on the board with a new integer representing the player who put down the piece
-        if (isTurnP1) {board[row][col] = 1;}
-        else {board[row][col] = 2;}
+        if (isTurnP1) {
+            board[row][col] = 1;
+        } else {
+            board[row][col] = 2;
+        }
         // Update the last row and col variables
         lastRow = row;
         lastCol = col;
@@ -57,8 +60,7 @@ public class Connect5 {
         int validNum;
         if (isTurnP1) {
             validNum = 1;
-        }
-        else {
+        } else {
             validNum = 2;
         }
 
@@ -67,9 +69,13 @@ public class Connect5 {
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 // Skip if direction is (0,0) because that’s not a direction
-                if (i == 0 && j == 0) {continue;}
+                if (i == 0 && j == 0) {
+                    continue;
+                }
                 // Skip redundant direction checks
-                if (i > 0 || (i == 0 && j > 0)) {continue;}
+                if (i > 0 || (i == 0 && j > 0)) {
+                    continue;
+                }
 
                 // Count streaks in both forward and backward directions from the last move
                 int forward = countStreak(board, lastRow + i, lastCol + j, i, j, validNum);
@@ -108,7 +114,7 @@ public class Connect5 {
         int gameState = evaluate(board);
         // If this version of the game is over, or depth limit reached, return the score associated with this outcome
         // along with the coordinates of the first move
-        if (gameState == 100 || gameState == -100 || depth == 0) {
+        if (gameState == 1000 || gameState == -1000 || depth == 0) {
             return new Move(OGRow, OGCol, gameState);
         }
 
@@ -116,8 +122,7 @@ public class Connect5 {
         Move bestMove;
         if (isMaxing) {
             bestMove = new Move(-1, -1, Integer.MIN_VALUE);
-        }
-        else {
+        } else {
             bestMove = new Move(-1, -1, Integer.MAX_VALUE);
         }
 
@@ -130,8 +135,7 @@ public class Connect5 {
                     // Maxing player uses 2, minimizing player uses 1
                     if (isMaxing) {
                         board[i][j] = 2;
-                    }
-                    else {
+                    } else {
                         board[i][j] = 1;
                     }
 
@@ -178,72 +182,88 @@ public class Connect5 {
 
 
     // Helper method for minimax
-    // Return state of game (-100 = P1 wins, 100 = P2 wins)
+    // Evaluates the current board state and returns a score:
+// +1000 if AI (player 2) wins, -1000 if human (player 1) wins,
+// otherwise a heuristic score based on streaks and their openness
     public int evaluate(int[][] board) {
-        // Iterate through every cell on the board, checking for winning streaks
+        int subScore = 0; // Accumulator for the heuristic score
+
+        // Loop through every cell on the board
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
-                // Get the value at the current index
-                int index = board[i][j];
-                // Skip the current index if it's empty
-                if (index == 0) {continue;}
+                int index = board[i][j]; // Value at current cell: 0 = empty, 1 = P1, 2 = P2
+                if (index == 0) continue; // Skip empty cells
 
-                // Check all four directions for a winning streak
-                if (
-                        // Horizontal
-                        countStreak(board, i, j, 0, 1, index) >= WIN_LENGTH ||
-                                // Vertical
-                                countStreak(board, i, j, 1, 0, index) >= WIN_LENGTH ||
-                                // Down-right diagonal
-                                countStreak(board, i, j, 1, 1, index) >= WIN_LENGTH ||
-                                // Up-right diagonal
-                                countStreak(board, i, j, -1, 1, index) >= WIN_LENGTH
-                ) {
-                    // If the streak is of 1s, return -100 to show that the human has won
-                    if (index == 1) {
-                        return -100;
-                    }
-                    // Otherwise return 100 to show that the computer has won
-                    else {
-                        return 100;
-                    }
-                }
-            }
-        }
+                // Check all 4 streak directions: horizontal, vertical, and two diagonals
+                int[][] directions = {{0, 1}, {1, 0}, {1, 1}, {-1, 1}};
+                for (int[] dir : directions) {
+                    int dx = dir[0];
+                    int dy = dir[1];
 
-        // If no winning streak is found, iterate through the board again, checking for shorter streaks
-        int subScore = 0;
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board.length; j++) {
-                // Get the value at the current index
-                int index = board[i][j];
-                // Skip the current index if it's empty
-                if (index == 0) {continue;}
+                    // Count how many consecutive cells in this direction belong to the current player
+                    int streakLength = countStreak(board, i, j, dx, dy, index);
 
-                // Check all four directions for a streak of 1 less than a winning streak
-                if (
-                    // Horizontal
-                        countStreak(board, i, j, 0, 1, index) == WIN_LENGTH - 1 ||
-                                // Vertical
-                                countStreak(board, i, j, 1, 0, index) == WIN_LENGTH - 1 ||
-                                // Down-right diagonal
-                                countStreak(board, i, j, 1, 1, index) == WIN_LENGTH - 1 ||
-                                // Up-right diagonal
-                                countStreak(board, i, j, -1, 1, index) == WIN_LENGTH - 1
-                ) {
-                    // If the streak is of 1s, subtract 5 from subScore
-                    if (index == 1) {
-                        subScore -= 1;
+                    // If the streak is long enough to win, return immediately
+                    if (streakLength >= WIN_LENGTH) {
+                        return index == 1 ? -1000 : 1000;
                     }
-                    // Otherwise add 5 to subScore
-                    else {
-                        subScore += 1;
+
+                    // Only evaluate the streak if this cell is the start of it (to avoid duplicates)
+                    if (isStartOfStreak(board, i, j, dx, dy, index)) {
+                        // Count how many "open ends" (adjacent empty cells at both sides of the streak)
+                        int openEnds = getOpenEnds(board, i, j, dx, dy, streakLength, index);
+
+                        // Heuristic score is streak length * number of open ends (0–2)
+                        int streakScore = streakLength * openEnds;
+
+                        // Add or subtract based on whether it's player 1 (human) or player 2 (AI)
+                        if (index == 1) {
+                            subScore -= streakScore;
+                        } else {
+                            subScore += streakScore;
+                        }
                     }
                 }
             }
         }
 
-        // If there's no winner, return the subScore
+        // Return the heuristic score (no winner found)
         return subScore;
     }
+
+    // Returns true if the current cell (i, j) is the *start* of a streak in the given direction
+    private boolean isStartOfStreak(int[][] board, int i, int j, int dx, int dy, int player) {
+        int prevX = i - dx;
+        int prevY = j - dy;
+        // It's the start if the previous cell is out of bounds or not the same player's piece
+        return !inBounds(prevX, prevY) || board[prevX][prevY] != player;
+    }
+
+    // Counts how many "open ends" the streak has (0, 1, or 2)
+// An open end is an empty space at either end of the streak
+    private int getOpenEnds(int[][] board, int i, int j, int dx, int dy, int length, int player) {
+        int openEnds = 0;
+
+        // Check one cell before the start of the streak
+        int beforeX = i - dx;
+        int beforeY = j - dy;
+        if (inBounds(beforeX, beforeY) && board[beforeX][beforeY] == 0) {
+            openEnds++;
+        }
+
+        // Check one cell after the end of the streak
+        int endX = i + dx * length;
+        int endY = j + dy * length;
+        if (inBounds(endX, endY) && board[endX][endY] == 0) {
+            openEnds++;
+        }
+
+        return openEnds;
+    }
+
+    // Returns true if the (i, j) cell is inside the board boundaries
+    private boolean inBounds(int i, int j) {
+        return i >= 0 && i < BOARD_SIZE && j >= 0 && j < BOARD_SIZE;
+    }
+
 }
