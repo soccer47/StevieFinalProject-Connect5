@@ -5,7 +5,7 @@ import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
 
-public class Connect5Viewer extends JPanel implements MouseListener, KeyListener {
+public class Connect4Viewer extends JPanel implements MouseListener, KeyListener {
     enum GameState {
         START, PLAYER1_TURN, PLAYER2_TURN, PLAYER1_WIN, PLAYER2_WIN, ENGINE_WIN, DRAW
     }
@@ -14,7 +14,7 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
     private ImageIcon startingScreen, turnP1, turnP2, winP1, winP2, winEngine, winDraw;
     private GameState state;
     private boolean isSinglePlayer;
-    private Connect5 game;
+    private Connect4 game;
     private final int GRID_SIZE = 7;
     private Point[][] gridPoints = new Point[GRID_SIZE][GRID_SIZE];
     private int cellWidth, cellHeight;
@@ -26,9 +26,9 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
     private long pulseStartTime = 0;
     private Timer pulseTimer;
 
-    public Connect5Viewer(boolean isSinglePlayer) {
+    public Connect4Viewer(boolean isSinglePlayer) {
         this.isSinglePlayer = isSinglePlayer;
-        this.game = new Connect5(isSinglePlayer);
+        this.game = new Connect4(isSinglePlayer);
         this.state = GameState.START;
 
         loadImages();
@@ -63,9 +63,7 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
 
     private void calculateGridPoints() {
         int xStart = 128;
-        int xEnd = 673;
         int yStart = 115;
-        int yEnd = 767;
 
         cellWidth = 78;
         cellHeight = 84;
@@ -94,6 +92,7 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
+
         switch (state) {
             case START -> g.drawImage(startingScreen.getImage(), 0, 0, getWidth(), getHeight(), null);
             case PLAYER1_TURN -> g.drawImage(turnP1.getImage(), 0, 0, getWidth(), getHeight(), null);
@@ -109,6 +108,7 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
             drawAllGridSquares(g);
         }
     }
+
 
     private void drawAllGridSquares(Graphics g) {
         g.setColor(Color.BLACK);
@@ -156,17 +156,17 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
         int x = e.getX(), y = e.getY();
 
         if (state == GameState.START) {
-            if (x >= 330 && x <= 577 && y >= 465 && y <= 540) {
+            if (x >= 305 && x <= 570 && y >= 470 && y <= 545) {
                 isSinglePlayer = true;
-                game = new Connect5(isSinglePlayer);
+                game = new Connect4(isSinglePlayer);
                 calculateGridPoints();
                 state = GameState.PLAYER1_TURN;
                 playGameMusic();
                 repaint();
                 return;
-            } else if (x >= 630 && x <= 880 && y >= 465 && y <= 540) {
+            } else if (x >= 635 && x <= 900 && y >= 470 && y <= 545) {
                 isSinglePlayer = false;
-                game = new Connect5(isSinglePlayer);
+                game = new Connect4(isSinglePlayer);
                 calculateGridPoints();
                 state = GameState.PLAYER1_TURN;
                 playGameMusic();
@@ -319,7 +319,7 @@ public class Connect5Viewer extends JPanel implements MouseListener, KeyListener
     public void keyTyped(KeyEvent e) {}
 
     public static void main(String[] args) {
-        new Connect5Viewer(true);
+        new Connect4Viewer(true);
     }
 
     static class AudioPlayer {

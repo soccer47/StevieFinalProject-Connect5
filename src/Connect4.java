@@ -1,4 +1,4 @@
-public class Connect5 {
+public class Connect4 {
     // Instance variables
     // 2D array representing game board
     public int[][] board;
@@ -16,10 +16,13 @@ public class Connect5 {
     static int lastRow;
     // Integer representing the column of the last piece placed
     static int lastCol;
+    // Declare the 2D array for tiered scores, with index [i][j] containing score for [streakLength][openEnds]
+    private int[][] tieredScores = new int[4][3];
 
-    public Connect5(boolean singlePlayer) {
+    public Connect4(boolean singlePlayer) {
         board = new int[BOARD_SIZE][BOARD_SIZE];
         isSinglePlayer = singlePlayer;
+        initializeScores();
     }
 
     // Adds a piece of the current to the board in the specified spot
@@ -183,8 +186,8 @@ public class Connect5 {
 
     // Helper method for minimax
     // Evaluates the current board state and returns a score:
-// +1000 if AI (player 2) wins, -1000 if human (player 1) wins,
-// otherwise a heuristic score based on streaks and their openness
+    // +1000 if AI (player 2) wins, -1000 if human (player 1) wins,
+    // otherwise a heuristic score based on streaks and their openness
     public int evaluate(int[][] board) {
         int subScore = 0; // Accumulator for the heuristic score
 
@@ -214,7 +217,7 @@ public class Connect5 {
                         int openEnds = getOpenEnds(board, i, j, dx, dy, streakLength, index);
 
                         // Heuristic score is streak length * number of open ends (0–2)
-                        int streakScore = streakLength * openEnds;
+                        int streakScore = tieredScores[streakLength][openEnds];
 
                         // Add or subtract based on whether it's player 1 (human) or player 2 (AI)
                         if (index == 1) {
@@ -240,7 +243,7 @@ public class Connect5 {
     }
 
     // Counts how many "open ends" the streak has (0, 1, or 2)
-// An open end is an empty space at either end of the streak
+    // An open end is an empty space at either end of the streak
     private int getOpenEnds(int[][] board, int i, int j, int dx, int dy, int length, int player) {
         int openEnds = 0;
 
@@ -266,4 +269,16 @@ public class Connect5 {
         return i >= 0 && i < BOARD_SIZE && j >= 0 && j < BOARD_SIZE;
     }
 
+    // Initialize the tieredScores array
+    private void initializeScores() {
+        // Fill the array for valid streaks and open ends
+        tieredScores[1][1] = 1;   // 1-in-a-row, 1 open end
+        tieredScores[1][2] = 2;   // 1-in-a-row, 2 open ends
+
+        tieredScores[2][1] = 5;   // 2-in-a-row, 1 open end
+        tieredScores[2][2] = 10;  // 2-in-a-row, 2 open ends
+
+        tieredScores[3][1] = 50;  // 3-in-a-row, 1 open end
+        tieredScores[3][2] = 100; // 3-in-a-row, 2 open ends
+    }
 }
