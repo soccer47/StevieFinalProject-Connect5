@@ -1,0 +1,36 @@
+My project is a fully functional connect 4 game on a 7x7 board. It offers both two player mode and also a single player
+mode where you play against a bot. After selecting the game mode on the starting screen, the player(s) continue on to
+place pieces on the board until one player wins, or until a draw is achieved, at which point an end screen is shown in
+the window based on the result of the game. Additionally, a different music recording plays at each of the 3 stages of
+the game.
+
+In the two player mode, the game backend switches the turns back and forth between the two players using the isTurnP1
+instance variable boolean. After each click, the frontend attempts to translate the click location to an index on the
+board (which is represented by a 2D array), and subsequently sends the coordinates to the takeTurn() method in the
+backend. If the move is valid (the index selected is within the bounds of the board and is currently empty), the board
+is updated in the backend, the isTurnP1 variable is altered accordingly, takeTurn() returns true (to show the move was
+accepted) and the board is redrawn in the frontend. If the move isn’t valid, takeTurn() returns false, and the same
+player can once again click an index on the board to play a piece. takeTurn() also looks for wins when a valid move is
+played (before returning true). It does this by calling gameWinner(), which returns true or false based on whether the
+inputted player has won the game or not. This method in turn calls countStreak, which takes in the index on the board
+and a direction of incrementation. By looping and calling countStreak while inputting the given index and all the
+directions, streaks are checked for in all directions from the most recent index, while also adding forward and
+backwards streaks to account for instances where the winning piece is placed in the middle of the streak. If any of the
+countStreak calls return a streak of at least winning length, gameWinner() returns true, leading takeTurn() to set the
+gameOver instance variable boolean to true, eventually resulting in the frontend switching to one of the win screens.
+
+In the single player mode the processes are pretty much the same, however the player two’s moves are instead made by the
+minimax() method in the backend (with the frontend calling the method for P2). The minimax method returns the most
+optimal move, recursively simulating all possible future game states up to the defined depth, and eventually choosing
+the move that maximizes the bot’s score while minimizing the opponent’s score at the same time. In this method all
+possible moves are taken (being simulated on the board before being reverted to the boards original state), and after
+each simulation the simulation board array is inputted into the evaluate method, which in turn gives the board a score
+from -1000 to 1000 (with a higher score being a better situation for the bot). This evaluate method checks not only for
+winning streaks for each player (immediately returning -1000 for P1 winning streaks and 1000 for P2 winning streaks),
+but also for the number of unblocked streaks for each player on the board, referencing a 2D array of scores to find the
+value associated with a streak by taking the value from [length][number of unblocked ends] to update the score.
+
+As each state is simulated the resulting moves (objects storing a row, col, and score) recurse back up the tree, and at
+the end the original index with the highest scored minimax move is returned to the frontend. In the case that no valid
+move is found by minimax() (which occurs sometimes when the board is very full), the frontend just plays the next
+available index on the board for P2.

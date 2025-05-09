@@ -1,0 +1,5 @@
+takeTurn() >> O(1)
+countStreak() >> O(n) where n is the max streak length
+gameWinner() >> O(1)
+minimax() >> O(s ^ d) where s is the number of board indexes and d is the depth
+evaluate() >> O(s) where s is the number of indexes on the board
